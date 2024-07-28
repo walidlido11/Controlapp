@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/Controlapp/static/css/main.58c984ff.css",
-    "main.js": "/Controlapp/static/js/main.8d03cb19.js",
+    "main.js": "/Controlapp/static/js/main.cb9a6783.js",
     "index.html": "/Controlapp/index.html",
     "main.58c984ff.css.map": "/Controlapp/static/css/main.58c984ff.css.map",
-    "main.8d03cb19.js.map": "/Controlapp/static/js/main.8d03cb19.js.map"
+    "main.cb9a6783.js.map": "/Controlapp/static/js/main.cb9a6783.js.map"
   },
   "entrypoints": [
     "static/css/main.58c984ff.css",
-    "static/js/main.8d03cb19.js"
+    "static/js/main.cb9a6783.js"
   ]
 }
