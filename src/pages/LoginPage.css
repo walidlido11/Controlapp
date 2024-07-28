@@ -1,0 +1,26 @@
+.login-container {
+  background: #f8f9fa;
+}
+
+.login-card {
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.login-button {
+  background-color: #007bff;
+  border: none;
+}
+
+.login-button:hover {
+  background-color: #0056b3;
+}
+
+.register-link {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+}

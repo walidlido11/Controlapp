@@ -1,0 +1,22 @@
+.row-completed {
+  background-color: #d4edda; /* Green for completed */
+}
+
+.row-pending {
+  background-color: #fff3cd; /* Yellow for pending */
+}
+
+.row-closed {
+  background-color: #f8d7da; /* Red for closed */
+}
+
+.row-in-progress {
+  background-color: #cce5ff; /* Blue for in-progress */
+}
+
+.password-toggle-button {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+}
