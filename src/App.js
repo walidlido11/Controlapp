@@ -54,7 +54,7 @@ function App() {
   };
 
   return (
-    <Router basename="/Controlapp">
+    <Router>
       <NavBar setUser={setUser} userRole={user?.role} /> {/* Pass userRole to NavBar */}
       <Routes>
         <Route path="/" element={<LoginPage setUser={setUser} />} />

@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5001;
 const JWT_SECRET = 'Bndjfkrh35i45njfgjdcxk'; // تأكد من تغيير هذا السر إلى قيمة آمنة
 
 // Middleware
-app.use(cors({ origin: '*' })); // إعداد CORS للسماح بالطلبات من جميع المصادر
+app.use(cors()); // إعداد CORS للسماح بالطلبات من جميع المصادر
 app.use(express.json()); // لتحليل جسم الطلب بصيغة JSON
 app.use(bodyParser.json()); // لتحليل جسم الطلب بصيغة JSON
 
@@ -130,6 +130,7 @@ app.post('/api/admin/setup', async (req, res) => {
   }
 });
 
+// الحصول على بيانات المستخدم
 app.get('/api/user', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -141,16 +142,25 @@ app.get('/api/user', authenticateToken, async (req, res) => {
   }
 });
 
-// الحصول على جميع الحسابات مع بيانات الموظف
+// الحصول على جميع الحسابات
 app.get('/api/accounts', authenticateToken, async (req, res) => {
   try {
-    // استرجاع جميع الحسابات ودمج بيانات الموظف المرتبط بكل حساب
-    const accounts = await Account.find()
-      .populate('assignedEmployee', 'name email'); // إدراج اسم وبيانات الموظف
+    const accounts = await Account.find().populate('assignedEmployee', 'name email');
     res.status(200).json(accounts);
   } catch (error) {
     console.error('Error fetching accounts:', error);
     res.status(500).json({ message: 'Error fetching accounts', error: error.message });
+  }
+});
+
+// الحصول على جميع الحسابات المكتملة
+app.get('/api/accounts/completed', authenticateToken, async (req, res) => {
+  try {
+    const accounts = await Account.find({ status: 'completed' }).populate('assignedEmployee', 'name email');
+    res.status(200).json(accounts);
+  } catch (error) {
+    console.error('Error fetching completed accounts:', error);
+    res.status(500).json({ message: 'Error fetching completed accounts', error: error.message });
   }
 });
 
@@ -165,67 +175,77 @@ app.get('/api/employees', authenticateToken, async (req, res) => {
   }
 });
 
-// إنشاء حساب جديد
-app.post('/api/accounts', authenticateToken, async (req, res) => {
+// الحصول على الحسابات الخاصة بموظف معين
+app.get('/api/accounts/employee/:employeeId', authenticateToken, async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const employee = await User.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    const accounts = await Account.find({ assignedEmployee: employeeId });
+    res.status(200).json(accounts);
+  } catch (error) {
+    console.error('Error fetching accounts for employee:', error); // Log the error
+    res.status(500).json({ message: 'Error fetching accounts for employee', error });
+  }
+});
+
+// تحديث حساب
+app.put('/api/accounts/:id', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+
+  const { id } = req.params;
   const { email, password, code, status, assignedEmployee, quantity, searchCount } = req.body;
 
   try {
-    const newAccount = new Account({ email, password, code, status, assignedEmployee, quantity, searchCount });
-    await newAccount.save();
-    res.status(201).json(newAccount);
+    const updateData = { email, code, status, assignedEmployee, quantity, searchCount };
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10); // تشفير كلمة المرور إذا تم تقديمها
+    }
+
+    const updatedAccount = await Account.findByIdAndUpdate(id, updateData, { new: true });
+    res.status(200).json(updatedAccount);
   } catch (error) {
-    console.error('Error creating account:', error);
-    res.status(500).json({ message: 'Error creating account', error });
+    console.error('Error updating account:', error); // Log the error
+    res.status(500).json({ message: 'Error updating account', error });
   }
 });
 
 // تحديث حالة الحساب
-app.put('/api/accounts/:id', authenticateToken, async (req, res) => {
+app.put('/api/accounts/:id/status', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-
   const validStatuses = ['pending', 'completed', 'closed', 'in-progress'];
 
+  // التحقق من صحة حالة الحساب
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ message: 'Invalid status' });
   }
 
   try {
     const updatedAccount = await Account.findByIdAndUpdate(id, { status }, { new: true });
-    if (!updatedAccount) return res.status(404).json({ message: 'Account not found' });
-
     res.status(200).json(updatedAccount);
   } catch (error) {
-    console.error('Error updating account status:', error);
+    console.error('Error updating account status:', error); // Log the error
     res.status(500).json({ message: 'Error updating account status', error });
   }
 });
 
 // حذف حساب
 app.delete('/api/accounts/:id', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+
   const { id } = req.params;
 
   try {
-    const deletedAccount = await Account.findByIdAndDelete(id);
-    if (!deletedAccount) return res.status(404).json({ message: 'Account not found' });
-
+    await Account.findByIdAndDelete(id);
     res.status(200).json({ message: 'Account deleted successfully' });
   } catch (error) {
-    console.error('Error deleting account:', error);
+    console.error('Error deleting account:', error); // Log the error
     res.status(500).json({ message: 'Error deleting account', error });
-  }
-});
-
-// استيراد الحسابات من ملف
-app.post('/api/accounts/import', authenticateToken, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-
-  try {
-    // معالجة وتحليل الملف المرفوع هنا
-    res.status(200).json({ message: 'Accounts imported successfully' });
-  } catch (error) {
-    console.error('Error importing accounts:', error);
-    res.status(500).json({ message: 'Error importing accounts', error });
   }
 });
 
